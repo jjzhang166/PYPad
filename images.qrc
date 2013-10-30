@@ -1,0 +1,21 @@
+<RCC>
+    <qresource prefix="/">
+        <file>images/add.png</file>
+        <file>images/config.png</file>
+        <file>images/delete.png</file>
+        <file>images/exit.png</file>
+        <file>images/restore.png</file>
+        <file>images/show.png</file>
+        <file>images/edit.png</file>
+        <file>images/hide_bar.png</file>
+        <file>images/show_bar.png</file>
+        <file>images/open.png</file>
+        <file>images/pin.png</file>
+        <file>images/save.png</file>
+        <file>images/unpin.png</file>
+        <file>images/clear.png</file>
+        <file>images/zoom_in.png</file>
+        <file>images/zoom_out.png</file>
+        <file>images/close.png</file>
+    </qresource>
+</RCC>
