@@ -9,9 +9,7 @@
 #include <QApplication>
 #include <QTextStream>
 #include <QFileInfo>
-#include <Phonon/AudioOutput>
 #include <QDir>
-#include <Phonon/MediaObject>
 #include <QFileIconProvider>
 #include <QListWidget>
 #include <QDesktopWidget>
@@ -485,14 +483,6 @@ namespace Util {
        ~ML();
        static void PlaySound(const QString& mediaFile)
        {
-           Phonon::Path mediaPath;
-           Phonon::MediaObject *mediaObject=new Phonon::MediaObject(NULL);
-           Phonon::AudioOutput *audioOutput=new Phonon::AudioOutput(Phonon::MusicCategory, NULL);
-           mediaPath=Phonon::createPath(mediaObject, audioOutput);
-           Phonon::MediaSource mediaSource(mediaFile);
-           mediaObject->setCurrentSource(mediaSource);
-           mediaObject->play();
-
        }
    };
 
@@ -537,5 +527,5 @@ namespace Util {
        }
     };
 
-};
+}
 #endif // GLOBAL_H

@@ -7,36 +7,41 @@ TARGET = PYPad
 DEPENDPATH += . src
 INCLUDEPATH += .
 
-# Input
-HEADERS += src/colorpicker.h \
-           src/lineargradient.h \
-           src/qt.h \
-           src/Util.h \
-    src/pypad.h \
-    src/pypadwrapper.h \
-    src/pypadlineedit.h \
-    src/pypadbutton.h \
-    src/pypadconfig.h \
-    src/pyfadewidget.h \
-    src/codedocument.h \
-    src/highlighter.h \
-    src/debugutil.h
+include($$PWD/src/simscintilla/simscintilla.pri)
 
-SOURCES += src/colorpicker.cpp \
-           src/lineargradient.cpp \
-    src/main.cpp \
-    src/pypad.cpp \
-    src/pypad_p.cpp \
-    src/pypadwrapper.cpp \
-    src/pypadlineedit.cpp \
-    src/pypadbutton.cpp \
-    src/pypadconfig.cpp \
-    src/pyfadewidget.cpp \
-    src/codedocument.cpp \
-    src/highlighter.cpp
+CONFIG += c++11
+DEFINES += USE_QT5 USELOG
+
+# Input
+HEADERS +=  src/colorpicker.h \
+            src/lineargradient.h \
+            src/qt.h \
+            src/Util.h \
+            src/pypad.h \
+            src/pypadwrapper.h \
+            src/pypadlineedit.h \
+            src/pypadbutton.h \
+            src/pypadconfig.h \
+            src/pyfadewidget.h \
+            src/codedocument.h \
+            src/highlighter.h \
+            src/debugutil.h
+
+SOURCES +=  src/colorpicker.cpp \
+            src/lineargradient.cpp \
+            src/main.cpp \
+            src/pypad.cpp \
+            src/pypad_p.cpp \
+            src/pypadwrapper.cpp \
+            src/pypadlineedit.cpp \
+            src/pypadbutton.cpp \
+            src/pypadconfig.cpp \
+            src/pyfadewidget.cpp \
+            src/codedocument.cpp \
+            src/highlighter.cpp
 
 RESOURCES += \
-    images.qrc
+            images.qrc
 
 
 
