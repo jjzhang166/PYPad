@@ -1,6 +1,7 @@
 #include "simabstractlexer.h"
 #include "simscintilladefs.h"
 #include "simscintilla.h"
+#include "simapis.h"
 
 struct SimAbstractLexerPrivate
 {
@@ -18,13 +19,15 @@ struct SimAbstractLexerPrivate
     typedef QMap<int, SimStyleData> Style2DataMap;
 
     SimAbstractLexerPrivate(SimAbstractLexer* parent, SimScintilla* s):
-                    q_ptr(parent), scintilla(s), hasInitStyleData(false),
+                    q_ptr(parent), scintilla(s), apiSet(nullptr), hasInitStyleData(false),
                     defaultColor(Qt::black), defaultBackgroundColor(Qt::white)
     {
         defaultFont = QFont();
     }
+    ~SimAbstractLexerPrivate();
+
     SimScintilla* scintilla;
-    SimAbstractAPIs *apiSet;
+    SimAPIs *apiSet;
     SimSci::AutoIndentStyle autoIndentStyle;
     QFont defaultFont;
     QColor defaultColor;
@@ -41,6 +44,11 @@ struct SimAbstractLexerPrivate
 
     SimAbstractLexer* q_ptr;
 };
+
+SimAbstractLexerPrivate::~SimAbstractLexerPrivate()
+{
+    SAFE_RELEASE(apiSet);
+}
 
 void SimAbstractLexerPrivate::initDefaultStyles()
 {
@@ -165,10 +173,22 @@ bool SimAbstractLexer::isCaseSensitive() const
 }
 
 /*!
+ * \brief 将外部的API只针对象传入到Lexer中
+ * \param apis
+ */
+void SimAbstractLexer::setAPIs(SimAPIs *apis)
+{
+    d->apiSet = apis;
+    if (apis != nullptr) {
+        apis->startExtraction();
+    }
+}
+
+/*!
  * \brief 返回API对象指针.
  * \return
  */
-SimAbstractAPIs *SimAbstractLexer::apis() const
+SimAPIs *SimAbstractLexer::apis() const
 {
     return d->apiSet;
 }

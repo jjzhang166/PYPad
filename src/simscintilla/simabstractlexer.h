@@ -10,7 +10,7 @@
 #include <QSettings>
 
 class SimScintilla;
-class SimAbstractAPIs;
+class SimAPIs;
 class SimAbstractLexerPrivate;
 
 class SIMSCINTILLA_EXPORT SimAbstractLexer : public QObject
@@ -20,8 +20,10 @@ public:
     explicit SimAbstractLexer(SimScintilla *parent = 0);
     virtual ~SimAbstractLexer();
 
-    SimAbstractAPIs *apis() const;
     SimSci::AutoIndentStyle autoIndentStyle() const;
+
+    void setAPIs(SimAPIs* apis);
+    SimAPIs *apis() const;
 
     void setDefaultColor(const QColor& col);
     QColor defaultColor() const;

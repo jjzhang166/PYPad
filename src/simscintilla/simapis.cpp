@@ -1,6 +1,10 @@
 #include "simapis.h"
 #include "simabstractlexer.h"
 
+#ifdef USELOG
+#include "logutil.h"
+#endif
+
 #include <QStringList>
 #include <QFile>
 #include <QTextStream>
@@ -28,6 +32,7 @@ private:
 
     static QStringList getApiWords(const QString& rawStr, const QString& sep, bool stripImage);
     static QString getApiBaseName(const QString& api);
+
 
     typedef QMap<QString, SimAPIs::WordCoordinateList> Word2CordMap;
     Word2CordMap mWord2CordMap;
@@ -90,8 +95,7 @@ QStringList SimAPIsExtractor::getApiWords(const QString &rawStr, const QString &
 {
     QString baseName = getApiBaseName(rawStr);
 
-    if (stripImage)
-    {
+    if (stripImage) {
         int tail = baseName.indexOf('?');
 
         if (tail >= 0)
@@ -116,14 +120,14 @@ QString SimAPIsExtractor::getApiBaseName(const QString &api)
     return rawApi.simplified();
 }
 
-SimAPIs::SimAPIs(SimAbstractLexer* parent): SimAbstractAPIs(parent), m_Extractor(nullptr)
+SimAPIs::SimAPIs(SimAbstractLexer* parent): SimAbstractAPIs(parent), m_extractor(nullptr)
 {
 }
 
 SimAPIs::~SimAPIs()
 {
-    if (m_Extractor != nullptr) {
-        delete m_Extractor;
+    if (m_extractor != nullptr) {
+        delete m_extractor;
     }
 }
 
@@ -134,8 +138,8 @@ SimAPIs::~SimAPIs()
  */
 void SimAPIs::add(const QString &api)
 {
-    if (!m_APIs.contains(api)) {
-        m_APIs.append(api);
+    if (!m_apis.contains(api)) {
+        m_apis.append(api);
     }
 }
 
@@ -146,8 +150,8 @@ void SimAPIs::add(const QString &api)
  */
 void SimAPIs::remove(const QString &api)
 {
-    if (m_APIs.contains(api)) {
-        m_APIs.removeAll(api);
+    if (m_apis.contains(api)) {
+        m_apis.removeAll(api);
     }
 }
 
@@ -157,7 +161,7 @@ void SimAPIs::remove(const QString &api)
  */
 void SimAPIs::clear()
 {
-    m_APIs.clear();
+    m_apis.clear();
 }
 
 /*!
@@ -184,7 +188,7 @@ bool SimAPIs::load(const QString &lang)
 
     // 把所有条目转存到变量中
     while (query.next()) {
-        m_APIs.append(query.value(0).toString());
+        m_apis.append(query.value(0).toString());
     }
 
     return true;
@@ -195,13 +199,13 @@ bool SimAPIs::load(const QString &lang)
  */
 void SimAPIs::startExtraction()
 {
-    if (m_Extractor != nullptr) {
+    if (m_extractor != nullptr) {
         return;
     }
 
-    m_Extractor = new SimAPIsExtractor(m_APIs, this);
-    connect(m_Extractor, SIGNAL(finished()), this, SIGNAL(apiExtractionFinished()));
-    m_Extractor->start();
+    m_extractor = new SimAPIsExtractor(m_apis, this);
+    connect(m_extractor, SIGNAL(finished()), this, SIGNAL(apiExtractionFinished()));
+    m_extractor->start();
 
     emit apiExtractionStarted();
 }
@@ -211,11 +215,11 @@ void SimAPIs::startExtraction()
  */
 void SimAPIs::cancelExtraction()
 {
-    if (m_Extractor != nullptr) {
-        if (m_Extractor->isRunning()) {
-            m_Extractor->wait(500);
-            m_Extractor->stop();
-            m_Extractor->deleteLater();
+    if (m_extractor != nullptr) {
+        if (m_extractor->isRunning()) {
+            m_extractor->wait(500);
+            m_extractor->stop();
+            m_extractor->deleteLater();
         }
         emit apiExtractionCanceled();
     }
@@ -229,13 +233,13 @@ void SimAPIs::updateAutoCompletionList(const QStringList &context, QStringList &
     QString path;
     QStringList newContext = getPositionOrigin(context, path);
 
-    if (m_OriginLength > 0) {
+    if (m_originLength > 0) {
         const QString wsep = lexer()->autoCompletionWordSeparators().first();
-        QStringList::const_iterator it = m_Origin;
+        QStringList::const_iterator it = m_origin;
 
-        m_UnambiguousContext = path;
+        m_unambiguousContext = path;
 
-        while (it != m_APIs.end()) {
+        while (it != m_apis.end()) {
             QString base = SimAPIsExtractor::getApiBaseName(*it);
 
             if (!base.startsWith(path))
@@ -245,7 +249,7 @@ void SimAPIs::updateAutoCompletionList(const QStringList &context, QStringList &
             if (base != path) {
                 // Get the word we are interested in (ie. the one after the
                 // current origin in path).
-                QString w = base.mid(m_OriginLength + wsep.length()).split(wsep).first();
+                QString w = base.mid(m_originLength + wsep.length()).split(wsep).first();
 
                 // Append the space, we know the origin is unambiguous.
                 w.append(' ');
@@ -258,7 +262,7 @@ void SimAPIs::updateAutoCompletionList(const QStringList &context, QStringList &
         }
     } else {
         // 此时我们把这些单词加入到多个上下文中.
-        m_UnambiguousContext.truncate(0);
+        m_unambiguousContext.truncate(0);
 
         bool unambig = true;
         QStringList with_context;
@@ -293,7 +297,7 @@ void SimAPIs::autoCompletionSelected(const QString &selection)
     QStringList lst = selection.split(' ');
 
     if (lst.count() != 2) {
-        m_OriginLength = 0;
+        m_originLength = 0;
         return;
     }
 
@@ -301,11 +305,11 @@ void SimAPIs::autoCompletionSelected(const QString &selection)
     QString owords;
 
     if (path.isEmpty())
-        owords = m_UnambiguousContext;
+        owords = m_unambiguousContext;
     else {
         // 检查括号.
         if (!path.startsWith("(") || !path.endsWith(")")) {
-            m_OriginLength = 0;
+            m_originLength = 0;
             return;
         }
 
@@ -313,8 +317,8 @@ void SimAPIs::autoCompletionSelected(const QString &selection)
         owords = path.mid(1, path.length() - 2);
     }
 
-    m_Origin = qLowerBound(m_APIs, owords);
-    m_OriginLength = owords.length();
+    m_origin = qLowerBound(m_apis, owords);
+    m_originLength = owords.length();
 }
 
 /*!
@@ -327,8 +331,8 @@ QStringList SimAPIs::callTips(const QStringList &context, int commas, SimSci::Ca
     QStringList wseps = lexer()->autoCompletionWordSeparators();
     QStringList cts;
 
-    if (m_OriginLength > 0) {
-        QStringList::const_iterator it = m_Origin;
+    if (m_originLength > 0) {
+        QStringList::const_iterator it = m_origin;
         QString prev;
 
         // 计算上下文的长度
@@ -352,7 +356,7 @@ QStringList SimAPIs::callTips(const QStringList &context, int commas, SimSci::Ca
         // 确认只找出我们感兴趣的函数
         path.append('(');
 
-        while (it != m_APIs.end() && (*it).startsWith(path)) {
+        while (it != m_apis.end() && (*it).startsWith(path)) {
             QString w = (*it).mid(ctstart);
 
             if (w != prev && hasEnoughCommas(w, commas)) {
@@ -372,14 +376,14 @@ QStringList SimAPIs::callTips(const QStringList &context, int commas, SimSci::Ca
         if (wil)
             for (int i = 0; i < wil->count(); ++i) {
                 const SimAPIs::WordCoordinate &wi = (*wil)[i];
-                QStringList awords = SimAPIsExtractor::getApiWords(m_APIs.at(wi.first), wseps.first(), true);
+                QStringList awords = SimAPIsExtractor::getApiWords(m_apis.at(wi.first), wseps.first(), true);
 
                 // Check the word is the function name and not part of any
                 // context.
                 if (wi.second != awords.count() - 1)
                     continue;
 
-                const QString &api = m_APIs[wi.first];
+                const QString &api = m_apis[wi.first];
 
                 int tail = api.indexOf('(');
 
@@ -405,7 +409,7 @@ QStringList SimAPIs::getPositionOrigin(const QStringList &context, QString &path
 {
     // 获取单词列表，检查上下文是否和上次被调用时传入的一样
     QStringList newContext;
-    bool isSameContext = (m_OldContext.count() > 0 && m_OldContext.count() < context.count());
+    bool isSameContext = (m_oldContext.count() > 0 && m_oldContext.count() < context.count());
 
     for (int i = 0; i < context.count(); ++i) {
         QString word = context[i];
@@ -413,7 +417,7 @@ QStringList SimAPIs::getPositionOrigin(const QStringList &context, QString &path
         if (!lexer()->isCaseSensitive())
             word = word.toUpper();
 
-        if (i < m_OldContext.count() && m_OldContext[i] != word)
+        if (i < m_oldContext.count() && m_oldContext[i] != word)
             isSameContext = false;
 
         newContext << word;
@@ -421,24 +425,24 @@ QStringList SimAPIs::getPositionOrigin(const QStringList &context, QString &path
 
     // 如果上下文改变了那么就重置起点位置
     if (!isSameContext)
-        m_OriginLength = 0;
+        m_originLength = 0;
 
     // If we have a current mOrigin (ie. the user made a specific selection in
     // the current context) then adjust the mOrigin to include the last complete
     // word as the user may have entered more parts of the name without using
     // auto-completion.
-    if (m_OriginLength > 0) {
+    if (m_originLength > 0) {
         const QString wsep = lexer()->autoCompletionWordSeparators().first();
 
-        int startNew = m_OldContext.count();
+        int startNew = m_oldContext.count();
         int endNew = newContext.count() - 1;
 
         if (startNew == endNew) {
-            path = m_OldContext.join(wsep);
-            m_OriginLength = path.length();
+            path = m_oldContext.join(wsep);
+            m_originLength = path.length();
         } else {
-            QString fixed = *m_Origin;
-            fixed.truncate(m_OriginLength);
+            QString fixed = *m_origin;
+            fixed.truncate(m_originLength);
 
             path = fixed;
 
@@ -446,20 +450,20 @@ QStringList SimAPIs::getPositionOrigin(const QStringList &context, QString &path
                 // 把这个单词添加到当前的路径中
                 path.append(wsep);
                 path.append(newContext[startNew]);
-                m_OriginLength = path.length();
+                m_originLength = path.length();
 
                 // 忽略当前位置上不与路径匹配的条目
-                while (m_Origin != m_APIs.end()) {
+                while (m_origin != m_apis.end()) {
                     // See if the current mOrigin has come to an end.
                     if (!isOriginStartsWith(fixed, wsep))
-                        m_Origin = m_APIs.end();
+                        m_origin = m_apis.end();
                     else if (isOriginStartsWith(path, wsep))
                         break;
                     else
-                        ++m_Origin;
+                        ++m_origin;
                 }
 
-                if (m_Origin == m_APIs.end())
+                if (m_origin == m_apis.end())
                     break;
 
                 ++startNew;
@@ -471,16 +475,16 @@ QStringList SimAPIs::getPositionOrigin(const QStringList &context, QString &path
         path.append(wsep);
 
         // If the new text wasn't recognised then reset the mOrigin.
-        if (m_Origin == m_APIs.end())
-            m_OriginLength = 0;
+        if (m_origin == m_apis.end())
+            m_originLength = 0;
     }
 
-    if (m_OriginLength == 0)
+    if (m_originLength == 0)
         path.truncate(0);
 
     // Save the "committed" context for next time.
-    m_OldContext = newContext;
-    m_OldContext.removeLast();
+    m_oldContext = newContext;
+    m_oldContext.removeLast();
 
     return newContext;
 }
@@ -498,7 +502,7 @@ bool SimAPIs::hasEnoughCommas(const QString &s, int commas) {
 
 const SimAPIs::WordCoordinateList *SimAPIs::getWordIndexOf(const QString &word) const
 {
-    if (m_Extractor == nullptr) {
+    if (m_extractor == nullptr) {
         return nullptr;
     }
 
@@ -509,14 +513,14 @@ const SimAPIs::WordCoordinateList *SimAPIs::getWordIndexOf(const QString &word) 
     if (lexer()->isCaseSensitive())
         csword = word;
     else {
-        csword = m_Extractor->mWord2WordMap[word];
+        csword = m_extractor->mWord2WordMap[word];
 
         if (csword.isEmpty())
             return 0;
     }
 
     // Get the possible API entries if any.
-    const WordCoordinateList *wl = &m_Extractor->mWord2CordMap[csword];
+    const WordCoordinateList *wl = &m_extractor->mWord2CordMap[csword];
 
     if (wl->isEmpty())
         return 0;
@@ -527,7 +531,7 @@ const SimAPIs::WordCoordinateList *SimAPIs::getWordIndexOf(const QString &word) 
 
 bool SimAPIs::isOriginStartsWith(const QString &path, const QString &wsep)
 {
-    const QString &orig = *m_Origin;
+    const QString &orig = *m_origin;
 
     if (!orig.startsWith(path))
         return false;
@@ -551,14 +555,14 @@ void SimAPIs::lastCompleteWord(const QString &word, QStringList &with_context, b
 
 void SimAPIs::lastPartialWord(const QString &word, QStringList &with_context, bool &unambig)
 {
-    if (m_Extractor == nullptr) {
+    if (m_extractor == nullptr) {
         return;
     }
 
     if (lexer()->isCaseSensitive()) {
-        QMap<QString, WordCoordinateList>::const_iterator it = m_Extractor->mWord2CordMap.lowerBound(word);
+        QMap<QString, WordCoordinateList>::const_iterator it = m_extractor->mWord2CordMap.lowerBound(word);
 
-        while (it != m_Extractor->mWord2CordMap.end()) {
+        while (it != m_extractor->mWord2CordMap.end()) {
             if (!it.key().startsWith(word))
                 break;
 
@@ -567,21 +571,30 @@ void SimAPIs::lastPartialWord(const QString &word, QStringList &with_context, bo
             ++it;
         }
     } else {
+#if 0
         QMap<QString, QString>::const_iterator it = m_Extractor->mWord2WordMap.lowerBound(word);
 
         while (it != m_Extractor->mWord2WordMap.end()) {
+#ifdef USELOG
+            LOG_VAR(it.key());
+#endif
             if (!it.key().startsWith(word))
                 break;
 
             addAPIEntries(m_Extractor->mWord2CordMap[it.value()], false, with_context, unambig);
-
             ++it;
+        }
+#endif
+        foreach(const QString& api, m_apis) {
+            if (api.startsWith(word, Qt::CaseInsensitive)) {
+                with_context.append(api);
+            }
         }
     }
 }
 void SimAPIs::addAPIEntries(const WordCoordinateList &wl, bool complete, QStringList &with_context, bool &unambig)
 {
-    if (m_Extractor == nullptr) {
+    if (m_extractor == nullptr) {
         return;
     }
 
@@ -590,7 +603,7 @@ void SimAPIs::addAPIEntries(const WordCoordinateList &wl, bool complete, QString
     for (int w = 0; w < wl.count(); ++w) {
         const WordCoordinate &wi = wl[w];
 
-        QStringList api_words = m_Extractor->getApiWords(m_APIs.at(wi.first), wseps.first(), false);
+        QStringList api_words = m_extractor->getApiWords(m_apis.at(wi.first), wseps.first(), false);
 
         int idx = wi.second;
 
@@ -602,9 +615,9 @@ void SimAPIs::addAPIEntries(const WordCoordinateList &wl, bool complete, QString
 
         QString api_word;
 
-        if (idx == 0)
+        if (idx == 0) {
             api_word = api_words[0] + ' ';
-        else {
+        } else {
             QStringList orgl = api_words.mid(0, idx);
 
             QString org = orgl.join(wseps.first());
@@ -613,10 +626,10 @@ void SimAPIs::addAPIEntries(const WordCoordinateList &wl, bool complete, QString
 
             // 查看是否已经检查过了起始点
             if (unambig)
-                if (m_UnambiguousContext.isEmpty())
-                    m_UnambiguousContext = org;
-                else if (m_UnambiguousContext != org) {
-                    m_UnambiguousContext.truncate(0);
+                if (m_unambiguousContext.isEmpty()) {
+                    m_unambiguousContext = org;
+                } else if (m_unambiguousContext != org) {
+                    m_unambiguousContext.truncate(0);
                     unambig = false;
                 }
         }

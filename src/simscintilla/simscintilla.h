@@ -409,6 +409,7 @@ signals:
     void textWidthChanged(qreal width);
     void marginWidthChanged(int width);
     void hScrollBarValueChanged(int value);
+    void charAdded(int ch);
 
 protected:
     virtual void mousePressEvent(QMouseEvent *e);
@@ -478,6 +479,8 @@ private:
     void notifyMarginWidthChanged();
     void applyStyles();
     void setLexerKeywords();
+    void getLexerProps();
+    void createLexerAPI(SimAbstractLexer* lexer);
 
     typedef QPair<QByteArray, QByteArray> TextStylePair;
     TextStylePair styleText(const QList<SimStyledText>& styledtext, int styleOffset);

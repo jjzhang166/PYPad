@@ -61,12 +61,12 @@ private:
     void lastPartialWord(const QString &word, QStringList &with_context, bool &unambig);
     void addAPIEntries(const WordCoordinateList &wl, bool complete, QStringList &with_context, bool &unambig);
 
-    SimAPIsExtractor* m_Extractor;
-    QStringList m_APIs;
-    QStringList m_OldContext;
-    QStringList::const_iterator m_Origin;
-    int m_OriginLength;
-    QString m_UnambiguousContext;
+    SimAPIsExtractor* m_extractor;
+    QStringList m_apis;
+    QStringList m_oldContext;
+    QStringList::const_iterator m_origin;
+    int m_originLength;
+    QString m_unambiguousContext;
     Q_DISABLE_COPY(SimAPIs)
 };
 

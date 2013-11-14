@@ -14,7 +14,8 @@ SimLexerApdl::SimLexerApdl(SimScintilla* parent): SimAbstractLexer(parent)
 /*!
  * reimp
  */
-QString SimLexerApdl::description(int style) const {
+QString SimLexerApdl::description(int style) const
+{
     switch(style) {
     case Comment:
         return tr("comments");
@@ -59,7 +60,8 @@ QString SimLexerApdl::description(int style) const {
 /*!
  * reimp
  */
-QString SimLexerApdl::keywords(int set) const {
+QString SimLexerApdl::keywords(int set) const
+{
     QString strKws;
 
     if (set == 1) {
@@ -85,7 +87,8 @@ QString SimLexerApdl::keywords(int set) const {
 /*!
  * reimp
  */
-QColor SimLexerApdl::defaultColor(int style) const {
+QColor SimLexerApdl::defaultColor(int style) const
+{
     switch (style)
     {
     case Default:
@@ -124,7 +127,8 @@ QColor SimLexerApdl::defaultColor(int style) const {
 /*!
  * reimp
  */
-bool SimLexerApdl::defaultEolFill(int style) const {
+bool SimLexerApdl::defaultEolFill(int style) const
+{
     switch (style)
     {
     case Default:
@@ -143,7 +147,8 @@ bool SimLexerApdl::defaultEolFill(int style) const {
 /*!
  * reimp
  */
-QFont SimLexerApdl::defaultFont(int style) const {
+QFont SimLexerApdl::defaultFont(int style) const
+{
     QFont f;
     switch(style) {
     case Comment:
@@ -174,7 +179,8 @@ QFont SimLexerApdl::defaultFont(int style) const {
 /*!
  * reimp
  */
-QColor SimLexerApdl::defaultBackgroundColor(int style) const {
+QColor SimLexerApdl::defaultBackgroundColor(int style) const
+{
     switch (style)
     {
     case Default:

@@ -3,14 +3,13 @@
 #include "simabstracttextstyle.h"
 #include "simstyledtext.h"
 #include "simcommandproxy.h"
-#include "simabstractapis.h"
+#include "simapis.h"
 #include "simlexerfactory.h"
 #include "simmacro.h"
 #include "simcommand.h"
 #include "logutil.h"
 #include "minus.xpm"
 #include "plus.xpm"
-#include "Scintilla.h"
 
 #include <QFileDialog>
 #include <QAction>
@@ -67,7 +66,8 @@ struct SimScintillaPrivate
     SimScintillaPrivate(SimScintilla* qptr): q(qptr), lang(SimSci::Lang_None), autoIndent(false), lineNumberVisible(false),
         modified(false), autoCompletionFillupsEnabled(false), isMousePressed(false), isCtrlPressed(false),
                            textColor(Qt::black), backgroundColor(Qt::white), allocatedMarkers(0),
-                           allocatedIndicators(7), wordchars(DefaultWordChars), lexer(nullptr), macro(nullptr)
+                           allocatedIndicators(7), wordchars(DefaultWordChars), lexer(nullptr), autoCompletionSource(SimSci::ACS_None),
+                           autoCompletionUseSingle(SimSci::ACUS_Never), autoCompletionThreshhold(-1), macro(nullptr)
     {
         cmdProxy = new SimCommandProxy(qptr);
     }
@@ -1512,15 +1512,11 @@ void SimScintilla::setLexer(SimAbstractLexer *lexer)
         lexer->refreshProperties();
 
         setAutoCompletionFillupsEnabled(d->autoCompletionFillupsEnabled);
-        d->autoCompletionSeparators = lexer->autoCompletionWordSeparators();
-
-        d->wordchars = lexer->wordCharacters();
-
-        if (d->wordchars.isEmpty())
-            d->wordchars = DefaultWordChars;
+        getLexerProps();
 
         ScintillaEdit::autoCSetIgnoreCase(!lexer->isCaseSensitive());
         recolor();
+        createLexerAPI(lexer);
     } else {
         resetNullLexer();
     }
@@ -2188,7 +2184,7 @@ void SimScintilla::showAutoCompleteFromDocument()
 
 void SimScintilla::showCallTip()
 {
-    SimAbstractAPIs *apis = d->lexer->apis();
+    SimAPIs *apis = d->lexer->apis();
 
     if (!apis)
         return;
@@ -2666,7 +2662,7 @@ void SimScintilla::initStyles()
     markerSetBack(SC_MARKNUM_FOLDERMIDTAIL, GetValueFromColor(Qt::black));
     markerSetBack(SC_MARKNUM_FOLDERTAIL, GetValueFromColor(Qt::black));
 
-    setFoldMarginColour(true, GetValueFromColor(QColor(105, 111, 73)));
+    setFoldMarginColour(true, GetValueFromColor(QColor(199, 199, 199)));
     setFoldMarginHiColour(true, GetValueFromColor(QColor(255,255,255)));
 }
 
@@ -2915,9 +2911,9 @@ void SimScintilla::startAutoCompletion(SimSci::AutoCompletionSource acs, bool ch
     QStringList wlist;
 
     if ((acs == SimSci::ACS_All || acs == SimSci::ACS_APIs) && d->lexer != nullptr) {
-        SimAbstractAPIs *apis = d->lexer->apis();
+        SimAPIs *apis = d->lexer->apis();
 
-        if (apis)
+        if (apis != nullptr)
             apis->updateAutoCompletionList(context, wlist);
     }
 
@@ -3186,7 +3182,7 @@ bool SimScintilla::isStartChar(char ch) const
 {
     QString s = QChar(ch);
 
-    for (int i = 0; i < d->autoCompletionSeparators.count(); ++i)
+    for (int i = 0; i < d->autoCompletionSeparators.size(); ++i)
         if (d->autoCompletionSeparators[i].endsWith(s))
             return true;
 
@@ -3328,12 +3324,14 @@ QString SimScintilla::getApiTip(const QString &api)
 
 void SimScintilla::handleCharAdded(char ch)
 {
-    d->addedChar = ch;
     LOG_VAR(ch);
+    emit charAdded(ch);
+    d->addedChar = ch;
+
     addEnclosingChar(ch);
 
-    // Ignore if there is a selection.
-    long pos = ScintillaEdit::send(SCI_GETSELECTIONSTART);
+    // 如果是选中文本的话就忽略自动完成
+    long pos = ScintillaEdit::selectionStart();
 
     if (pos != ScintillaEdit::selectionEnd() || pos == 0)
         return;
@@ -3442,9 +3440,8 @@ void SimScintilla::notifyTextWidthChanged()
 
 void SimScintilla::notifyMarginWidthChanged()
 {
-    const int MaxMargin = 4;
     int marginWidth_ = 0;
-    for (int i = 0; i < MaxMargin; i++) {
+    for (int i = 0; i < 4; i++) {
         marginWidth_ += marginWidth(i);
     }
     emit marginWidthChanged(marginWidth_);
@@ -3465,6 +3462,35 @@ void SimScintilla::setLexerKeywords()
     for (int k = 0; k <= KEYWORDSET_MAX; ++k) {
         const QString kw = d->lexer->keywords(k);
         ScintillaEdit::setKeyWords(k, kw.toStdString().c_str());
+    }
+}
+
+void SimScintilla::getLexerProps()
+{
+    d->autoCompletionSeparators = d->lexer->autoCompletionWordSeparators();
+    d->wordchars = d->lexer->wordCharacters();
+
+    if (d->wordchars.isEmpty())
+        d->wordchars = DefaultWordChars;
+}
+
+void SimScintilla::createLexerAPI(SimAbstractLexer *lexer)
+{
+    if (lexer == nullptr) {
+        return;
+    }
+    SimAPIs* apis = new SimAPIs(lexer);
+    lexer->setAPIs(apis);
+    const int MaxKeywordCount = 255;
+    for (int i = 0; i < MaxKeywordCount; ++i) {
+        QString kws = lexer->keywords(i);
+        if (kws.isEmpty()) {
+            continue;
+        }
+        QStringList kwList = kws.split(' ');
+        for(const QString& kw : kwList) {
+            apis->add(kw);
+        }
     }
 }
 
